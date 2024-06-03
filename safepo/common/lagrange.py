@@ -23,7 +23,7 @@ import torch
 
 class Lagrange:
     """Lagrange multiplier for constrained optimization.
-    
+
     Args:
         cost_limit: the cost limit
         lagrangian_multiplier_init: the initial value of the lagrangian multiplier
@@ -31,12 +31,12 @@ class Lagrange:
         lagrangian_upper_bound: the upper bound of the lagrangian multiplier
 
     Attributes:
-        cost_limit: the cost limit  
+        cost_limit: the cost limit
         lagrangian_multiplier_lr: the learning rate of the lagrangian multiplier
         lagrangian_upper_bound: the upper bound of the lagrangian multiplier
         _lagrangian_multiplier: the lagrangian multiplier
         lambda_range_projection: the projection function of the lagrangian multiplier
-        lambda_optimizer: the optimizer of the lagrangian multiplier    
+        lambda_optimizer: the optimizer of the lagrangian multiplier
     """
 
     # pylint: disable-next=too-many-arguments
@@ -69,7 +69,7 @@ class Lagrange:
     @property
     def lagrangian_multiplier(self) -> torch.Tensor:
         """The lagrangian multiplier.
-        
+
         Returns:
             the lagrangian multiplier
         """
@@ -77,10 +77,10 @@ class Lagrange:
 
     def compute_lambda_loss(self, mean_ep_cost: float) -> torch.Tensor:
         """Compute the loss of the lagrangian multiplier.
-        
+
         Args:
             mean_ep_cost: the mean episode cost
-            
+
         Returns:
             the loss of the lagrangian multiplier
         """
@@ -88,10 +88,10 @@ class Lagrange:
 
     def update_lagrange_multiplier(self, Jc: float) -> None:
         """Update the lagrangian multiplier.
-        
+
         Args:
             Jc: the mean episode cost
-            
+
         Returns:
             the loss of the lagrangian multiplier
         """
@@ -106,7 +106,6 @@ class Lagrange:
 
 
 class PIDLagrangian:
-
     """PID Lagrangian multiplier for constrained optimization.
 
     Args:
@@ -140,21 +139,21 @@ class PIDLagrangian:
         - Authors: Adam Stooke, Joshua Achiam, Pieter Abbeel.
         - URL: `CPPOPID <https://arxiv.org/abs/2007.03964>`_
     """
-    
+
     # pylint: disable-next=too-many-arguments
     def __init__(
         self,
         cost_limit: float,
-        lagrangian_multiplier_init: float=0.005,
-        pid_kp: float=0.1,
-        pid_ki: float=0.01,
-        pid_kd: float=0.01,
-        pid_d_delay: int=10,
-        pid_delta_p_ema_alpha: float=0.95,
-        pid_delta_d_ema_alpha: float=0.95,
-        sum_norm: bool=True,
-        diff_norm: bool=False,
-        penalty_max: int=100.0,
+        lagrangian_multiplier_init: float = 0.005,
+        pid_kp: float = 0.1,
+        pid_ki: float = 0.01,
+        pid_kd: float = 0.01,
+        pid_d_delay: int = 10,
+        pid_delta_p_ema_alpha: float = 0.95,
+        pid_delta_d_ema_alpha: float = 0.95,
+        sum_norm: bool = True,
+        diff_norm: bool = False,
+        penalty_max: int = 100.0,
     ) -> None:
         """Initialize an instance of :class:`PIDLagrangian`."""
         self._pid_kp: float = pid_kp

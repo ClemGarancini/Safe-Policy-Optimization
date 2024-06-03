@@ -82,6 +82,7 @@ def convert_json(obj):
 
         return str(obj)
 
+
 def colorize(string, color, bold=False, highlight=False):
     """
     Colorize a string.
@@ -101,7 +102,7 @@ def colorize(string, color, bold=False, highlight=False):
 class Logger:
     """
     A class for logging experimental data and managing logging-related functionalities.
-    
+
     Args:
         log_dir (str): The directory path for storing log files.
         seed (int or None): The seed for reproducibility. Default is None.
@@ -152,8 +153,7 @@ class Logger:
             self.summary_writer = SummaryWriter(os.path.join(self.log_dir, "tb"))
 
     def close(self):
-        """Close the output file.
-        """
+        """Close the output file."""
         self.output_file.close()
 
     def debug(self, msg, color="yellow"):
@@ -268,7 +268,7 @@ class Logger:
             warnings.simplefilter("ignore")
             torch.save(self.torch_saver_elements, fname)
         torch.save(self.torch_saver_elements.state_dict(), fname)
-        self.log("Done.")
+        self.log("Done in " + fname)
 
     def dump_tabular(self) -> None:
         """Write all of the diagnostics from the current iteration.
@@ -312,7 +312,7 @@ class Logger:
 
 
 class EpochLogger(Logger):
-    
+
     def __init__(
         self,
         log_dir,
@@ -351,7 +351,6 @@ class EpochLogger(Logger):
                 if k not in self.epoch_dict.keys():
                     self.epoch_dict[k] = []
                 self.epoch_dict[k].append(v)
-            
 
     def log_tabular(self, key, val=None, min_and_max=False, std=False):
         if val is not None:

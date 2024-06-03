@@ -41,7 +41,7 @@ def build_mlp_network(sizes):
     """
     layers = list()
     for j in range(len(sizes) - 1):
-        act = nn.Tanh if j < len(sizes) - 2 else nn.Identity
+        act = nn.Tanh
         affine_layer = nn.Linear(sizes[j], sizes[j + 1])
         nn.init.kaiming_uniform_(affine_layer.weight, a=np.sqrt(5))
         layers += [affine_layer, act()]
@@ -72,12 +72,12 @@ class Actor(nn.Module):
 
     def __init__(self, obs_dim: int, act_dim: int, hidden_sizes: list = [64, 64]):
         super().__init__()
-        self.mean = build_mlp_network([obs_dim]+hidden_sizes+[act_dim])
+        self.mean = build_mlp_network([obs_dim] + hidden_sizes + [act_dim])
         self.log_std = nn.Parameter(torch.zeros(act_dim), requires_grad=True)
 
     def forward(self, obs: torch.Tensor):
         mean = self.mean(obs)
-        std = torch.exp(self.log_std)
+        std = 0.4 * torch.exp(self.log_std)
         return Normal(mean, std)
 
 
@@ -102,7 +102,7 @@ class VCritic(nn.Module):
 
     def __init__(self, obs_dim, hidden_sizes: list = [64, 64]):
         super().__init__()
-        self.critic = build_mlp_network([obs_dim]+hidden_sizes+[1])
+        self.critic = build_mlp_network([obs_dim] + hidden_sizes + [1])
 
     def forward(self, obs):
         return torch.squeeze(self.critic(obs), -1)
@@ -164,10 +164,12 @@ class ActorVCritic(nn.Module):
             action = dist.mean
         else:
             action = dist.rsample()
+
         log_prob = dist.log_prob(action).sum(axis=-1)
         value_r = self.reward_critic(obs)
         value_c = self.cost_critic(obs)
         return action, log_prob, value_r, value_c
+
 
 class MultiAgentActor(nn.Module):
     """
@@ -192,7 +194,7 @@ class MultiAgentActor(nn.Module):
         _use_recurrent_policy (bool): Flag indicating whether to use recurrent policy.
         _recurrent_N (int): Number of recurrent layers.
         tpdv (dict): Dictionary with data type and device for tensor conversion.
-        
+
     Example:
         config = {"hidden_size": 256, "gain": 0.1, ...}
         obs_space = gym.spaces.Box(low=0, high=1, shape=(4,))
@@ -209,7 +211,7 @@ class MultiAgentActor(nn.Module):
     def __init__(self, config, obs_space, action_space, device=torch.device("cpu")):
         super(MultiAgentActor, self).__init__()
         self.hidden_size = config["hidden_size"]
-        self.config=config
+        self.config = config
         self._gain = config["gain"]
         self._use_orthogonal = config["use_orthogonal"]
         self._use_policy_active_masks = config["use_policy_active_masks"]
@@ -219,13 +221,21 @@ class MultiAgentActor(nn.Module):
         self.tpdv = dict(dtype=torch.float32, device=device)
 
         obs_shape = get_shape_from_obs_space(obs_space)
-        base =  MLPBase
+        base = MLPBase
         self.base = base(self.config, obs_shape)
-        self.act = ACTLayer(action_space, self.hidden_size, self._use_orthogonal, self._gain, self.config)
+        self.act = ACTLayer(
+            action_space,
+            self.hidden_size,
+            self._use_orthogonal,
+            self._gain,
+            self.config,
+        )
 
         self.to(device)
 
-    def forward(self, obs, rnn_states, masks, available_actions=None, deterministic=False):
+    def forward(
+        self, obs, rnn_states, masks, available_actions=None, deterministic=False
+    ):
         """
         Perform a forward pass through the network to generate actions and log probabilities.
 
@@ -247,11 +257,15 @@ class MultiAgentActor(nn.Module):
             available_actions = check(available_actions).to(**self.tpdv)
 
         actor_features = self.base(obs)
-        actions, action_log_probs = self.act(actor_features, available_actions, deterministic)
+        actions, action_log_probs = self.act(
+            actor_features, available_actions, deterministic
+        )
 
         return actions, action_log_probs, rnn_states
 
-    def evaluate_actions(self, obs, rnn_states, action, masks, available_actions=None, active_masks=None):
+    def evaluate_actions(
+        self, obs, rnn_states, action, masks, available_actions=None, active_masks=None
+    ):
         """
         Evaluate the actions based on the network's policy.
 
@@ -279,21 +293,26 @@ class MultiAgentActor(nn.Module):
 
         actor_features = self.base(obs)
 
-        if self.config["algorithm_name"]== "macpo":
-            action_log_probs, dist_entropy, action_mu, action_std, _ = self.act.evaluate_actions_trpo(actor_features,
-                                                                                                   action,
-                                                                                                   available_actions,
-                                                                                                   active_masks=
-                                                                                                   active_masks if self._use_policy_active_masks
-                                                                                                   else None)
+        if self.config["algorithm_name"] == "macpo":
+            action_log_probs, dist_entropy, action_mu, action_std, _ = (
+                self.act.evaluate_actions_trpo(
+                    actor_features,
+                    action,
+                    available_actions,
+                    active_masks=(
+                        active_masks if self._use_policy_active_masks else None
+                    ),
+                )
+            )
             return action_log_probs, dist_entropy, action_mu, action_std
 
         else:
-            action_log_probs, dist_entropy = self.act.evaluate_actions(actor_features,
-                                                                    action, available_actions,
-                                                                    active_masks=
-                                                                    active_masks if self._use_policy_active_masks
-                                                                    else None)
+            action_log_probs, dist_entropy = self.act.evaluate_actions(
+                actor_features,
+                action,
+                available_actions,
+                active_masks=active_masks if self._use_policy_active_masks else None,
+            )
 
             return action_log_probs, dist_entropy
 
@@ -318,7 +337,7 @@ class MultiAgentCritic(nn.Module):
         _recurrent_N (int): Number of recurrent layers.
         tpdv (dict): Dictionary for tensor properties.
     """
-    
+
     def __init__(self, config, cent_obs_space, device=torch.device("cuda:0")):
         super(MultiAgentCritic, self).__init__()
         self.hidden_size = config["hidden_size"]
@@ -327,10 +346,12 @@ class MultiAgentCritic(nn.Module):
         self._use_recurrent_policy = config["use_recurrent_policy"]
         self._recurrent_N = config["recurrent_N"]
         self.tpdv = dict(dtype=torch.float32, device=device)
-        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][self._use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][
+            self._use_orthogonal
+        ]
 
         cent_obs_shape = get_shape_from_obs_space(cent_obs_space)
-        base =  MLPBase
+        base = MLPBase
         self.base = base(config, cent_obs_shape)
 
         def init_(m):
@@ -361,4 +382,3 @@ class MultiAgentCritic(nn.Module):
         values = self.v_out(critic_features)
 
         return values, rnn_states
-    

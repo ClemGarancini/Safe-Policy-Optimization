@@ -15,24 +15,56 @@
 
 
 from __future__ import annotations
-try :
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandCatchOver2underarm_Safe_finger import ShadowHandCatchOver2Underarm_Safe_finger
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandCatchOver2underarm_Safe_joint import ShadowHandCatchOver2Underarm_Safe_joint
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandOver_Safe_finger import ShadowHandOver_Safe_finger
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandOver_Safe_joint import ShadowHandOver_Safe_joint
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.freight_franka_pick_and_place import FreightFrankaPickAndPlace
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.freight_franka_close_drawer import FreightFrankaCloseDrawer
-    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.base.multi_vec_task import ShadowHandMultiVecTaskPython, FreightFrankaMultiVecTaskPython
+
+try:
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandCatchOver2underarm_Safe_finger import (
+        ShadowHandCatchOver2Underarm_Safe_finger,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandCatchOver2underarm_Safe_joint import (
+        ShadowHandCatchOver2Underarm_Safe_joint,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandOver_Safe_finger import (
+        ShadowHandOver_Safe_finger,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.ShadowHandOver_Safe_joint import (
+        ShadowHandOver_Safe_joint,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.freight_franka_pick_and_place import (
+        FreightFrankaPickAndPlace,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.freight_franka_close_drawer import (
+        FreightFrankaCloseDrawer,
+    )
+    from safety_gymnasium.tasks.safe_isaac_gym.envs.tasks.base.multi_vec_task import (
+        ShadowHandMultiVecTaskPython,
+        FreightFrankaMultiVecTaskPython,
+    )
     from safepo.common.wrappers import GymnasiumIsaacEnv
 except ImportError:
     pass
 from typing import Callable
 import safety_gymnasium
-from safety_gymnasium.wrappers import SafeAutoResetWrapper, SafeRescaleAction, SafeUnsqueeze
+from safety_gymnasium.wrappers import (
+    SafeAutoResetWrapper,
+    SafeRescaleAction,
+    SafeUnsqueeze,
+)
 from safety_gymnasium.vector.async_vector_env import SafetyAsyncVectorEnv
-from safepo.common.wrappers import ShareSubprocVecEnv, ShareDummyVecEnv, ShareEnv, SafeNormalizeObservation, MultiGoalEnv
+from safepo.common.wrappers import (
+    ShareSubprocVecEnv,
+    ShareDummyVecEnv,
+    ShareEnv,
+    SafeNormalizeObservation,
+    MultiGoalEnv,
+)
 
-def make_sa_mujoco_env(num_envs: int, env_id: str, seed: int|None = None):
+
+def make_human_render_mujoco_env(env_id: str):
+    env = safety_gymnasium.make(env_id, render_mode="human")
+    return env
+
+
+def make_sa_mujoco_env(num_envs: int, env_id: str, seed: int | None = None):
     """
     Creates and wraps an environment based on the specified parameters.
 
@@ -45,22 +77,24 @@ def make_sa_mujoco_env(num_envs: int, env_id: str, seed: int|None = None):
         env: The created and wrapped environment.
         obs_space: The observation space of the environment.
         act_space: The action space of the environment.
-        
+
     Examples:
         >>> from safepo.common.env import make_sa_mujoco_env
-        >>> 
+        >>>
         >>> env, obs_space, act_space = make_sa_mujoco_env(
-        >>>     num_envs=1, 
-        >>>     env_id="SafetyPointGoal1-v0", 
+        >>>     num_envs=1,
+        >>>     env_id="SafetyPointGoal1-v0",
         >>>     seed=0
         >>> )
     """
     if num_envs > 1:
+
         def create_env() -> Callable:
             """Creates an environment that can enable or disable the environment checker."""
             env = safety_gymnasium.make(env_id)
             env = SafeRescaleAction(env, -1.0, 1.0)
             return env
+
         env_fns = [create_env for _ in range(num_envs)]
         env = SafetyAsyncVectorEnv(env_fns)
         env = SafeNormalizeObservation(env)
@@ -76,8 +110,9 @@ def make_sa_mujoco_env(num_envs: int, env_id: str, seed: int|None = None):
         env = SafeRescaleAction(env, -1.0, 1.0)
         env = SafeNormalizeObservation(env)
         env = SafeUnsqueeze(env)
-    
+
     return env, obs_space, act_space
+
 
 def make_sa_isaac_env(args, cfg, sim_params):
     """
@@ -109,13 +144,15 @@ def make_sa_isaac_env(args, cfg, sim_params):
         device_type=args.device,
         device_id=device_id,
         headless=args.headless,
-        is_multi_agent=False)
+        is_multi_agent=False,
+    )
     try:
         env = GymnasiumIsaacEnv(task, rl_device)
     except ModuleNotFoundError:
         env = None
 
     return env
+
 
 def make_ma_mujoco_env(scenario, agent_conf, seed, cfg_train):
     """
@@ -128,6 +165,7 @@ def make_ma_mujoco_env(scenario, agent_conf, seed, cfg_train):
     Returns:
         env: A multi-agent environment.
     """
+
     def get_env_fn(rank):
         def init_env():
             """
@@ -136,7 +174,7 @@ def make_ma_mujoco_env(scenario, agent_conf, seed, cfg_train):
             Returns:
                 env: Initialized ShareEnv instance.
             """
-            env=ShareEnv(
+            env = ShareEnv(
                 scenario=scenario,
                 agent_conf=agent_conf,
             )
@@ -145,10 +183,13 @@ def make_ma_mujoco_env(scenario, agent_conf, seed, cfg_train):
 
         return init_env
 
-    if cfg_train['n_rollout_threads']== 1:
-        return ShareDummyVecEnv([get_env_fn(0)], cfg_train['device'])
+    if cfg_train["n_rollout_threads"] == 1:
+        return ShareDummyVecEnv([get_env_fn(0)], cfg_train["device"])
     else:
-        return ShareSubprocVecEnv([get_env_fn(i) for i in range(cfg_train['n_rollout_threads'])])
+        return ShareSubprocVecEnv(
+            [get_env_fn(i) for i in range(cfg_train["n_rollout_threads"])]
+        )
+
 
 def make_ma_multi_goal_env(task, seed, cfg_train):
     """
@@ -161,6 +202,7 @@ def make_ma_multi_goal_env(task, seed, cfg_train):
     Returns:
         env: A multi-agent environment.
     """
+
     def get_env_fn(rank):
         def init_env():
             """
@@ -169,18 +211,21 @@ def make_ma_multi_goal_env(task, seed, cfg_train):
             Returns:
                 env: Initialized ShareEnv instance.
             """
-            env=MultiGoalEnv(
+            env = MultiGoalEnv(
                 task=task,
                 seed=seed,
             )
             return env
 
         return init_env
-    
-    if cfg_train['n_rollout_threads']== 1:
-        return ShareDummyVecEnv([get_env_fn(0)], cfg_train['device'])
+
+    if cfg_train["n_rollout_threads"] == 1:
+        return ShareDummyVecEnv([get_env_fn(0)], cfg_train["device"])
     else:
-        return ShareSubprocVecEnv([get_env_fn(i) for i in range(cfg_train['n_rollout_threads'])])
+        return ShareSubprocVecEnv(
+            [get_env_fn(i) for i in range(cfg_train["n_rollout_threads"])]
+        )
+
 
 def make_ma_isaac_env(args, cfg, cfg_train, sim_params, agent_index):
     """
@@ -211,7 +256,8 @@ def make_ma_isaac_env(args, cfg, cfg_train, sim_params, agent_index):
         device_id=device_id,
         headless=args.headless,
         agent_index=agent_index,
-        is_multi_agent=True)
+        is_multi_agent=True,
+    )
     task_name = task.__class__.__name__
     if "ShadowHand" in task_name:
         env = ShadowHandMultiVecTaskPython(task, rl_device)
