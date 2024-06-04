@@ -165,13 +165,14 @@ def fvp(
 
 def main(args, cfg_env=None):
     # set the random seed, device and number of threads
-    print(args)
+
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
     torch.set_num_threads(4)
     device = torch.device(f"{args.device}:{args.device_id}")
+    print("Device used: ", device)
     if args.task not in isaac_gym_map.keys():
         env, obs_space, act_space = make_sa_mujoco_env(
             num_envs=args.num_envs, env_id=args.task, seed=args.seed
@@ -555,6 +556,7 @@ if __name__ == "__main__":
     relpath = "-".join([subfolder, relpath])
     algo = os.path.basename(__file__).split(".")[0]
     args.log_dir = os.path.join(args.log_dir, args.experiment, args.task, algo, relpath)
+
     if not args.write_terminal:
         terminal_log_name = "terminal.log"
         error_log_name = "error.log"
