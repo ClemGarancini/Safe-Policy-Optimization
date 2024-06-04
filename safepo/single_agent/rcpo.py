@@ -258,6 +258,7 @@ def main(args, cfg_env=None):
 
     # training loop
     for epoch in range(epochs):
+        logger.log("New Epoch began")
         rollout_start_time = time.time()
         # collect samples until we have enough to update
         for steps in range(local_steps_per_epoch):
