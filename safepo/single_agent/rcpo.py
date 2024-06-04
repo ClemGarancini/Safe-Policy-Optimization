@@ -258,7 +258,6 @@ def main(args, cfg_env=None):
 
     # training loop
     for epoch in range(epochs):
-        logger.log("New Epoch began")
         rollout_start_time = time.time()
         # collect samples until we have enough to update
         for steps in range(local_steps_per_epoch):
@@ -342,7 +341,6 @@ def main(args, cfg_env=None):
                         last_value_r=last_value_r, last_value_c=last_value_c, idx=idx
                     )
 
-        logger.log("1")
         rollout_end_time = time.time()
 
         eval_start_time = time.time()
@@ -380,14 +378,12 @@ def main(args, cfg_env=None):
                     "Metrics/EvalEpLen": eval_len,
                 }
             )
-        logger.log("2")
 
         eval_end_time = time.time()
 
         # update lagrange multiplier
         ep_costs = logger.get_stats("Metrics/EpCost")
         lagrange.update_lagrange_multiplier(ep_costs)
-        logger.log("3")
 
         # update policy
         data = buffer.get()
@@ -395,11 +391,9 @@ def main(args, cfg_env=None):
         theta_old = get_flat_params_from(policy.actor)
         policy.actor.zero_grad()
 
-        logger.log("4")
         # comnpute advantage
         advantage = data["adv_r"] - lagrange.lagrangian_multiplier * data["adv_c"]
         advantage /= lagrange.lagrangian_multiplier + 1
-        logger.log("5")
 
         # compute loss_pi
         distribution = policy.actor(data["obs"])
@@ -408,7 +402,6 @@ def main(args, cfg_env=None):
         loss_pi = -(ratio * advantage).mean()
 
         loss_pi.backward()
-        logger.log("6")
 
         grads = -get_flat_gradients_from(policy.actor)
         x = conjugate_gradients(fvp, policy, fvp_obs, grads, CONJUGATE_GRADIENT_ITERS)
@@ -418,7 +411,6 @@ def main(args, cfg_env=None):
         alpha = torch.sqrt(2 * config["target_kl"] / (xHx + 1e-8))
         step_direction = x * alpha
         assert torch.isfinite(step_direction).all(), "step_direction is not finite"
-        logger.log("7")
 
         theta_new = theta_old + step_direction
         set_param_values_to_model(policy.actor, theta_new)
@@ -430,7 +422,6 @@ def main(args, cfg_env=None):
                 .item()
             )
 
-        logger.log("8")
         try:
             logger.store(
                 **{
@@ -445,7 +436,6 @@ def main(args, cfg_env=None):
             )
         except Exception as e:
             print("An error of type ", type(e).__name__, " has occured")
-        logger.log("9")
 
         dataloader = DataLoader(
             dataset=TensorDataset(
@@ -458,7 +448,6 @@ def main(args, cfg_env=None):
             ),
             shuffle=True,
         )
-        logger.log("10")
         for _ in range(config["learning_iters"]):
             for (
                 obs_b,
@@ -494,7 +483,6 @@ def main(args, cfg_env=None):
                         "Loss/Loss_cost_critic": loss_c.mean().item(),
                     }
                 )
-        logger.log("11")
         update_end_time = time.time()
         if not logger.logged:
             # log data
