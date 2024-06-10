@@ -210,9 +210,9 @@ def main(args, cfg_env=None):
         hidden_sizes=config["hidden_sizes"],
     ).to(device)
     reward_critic_optimizer = torch.optim.Adam(
-        policy.reward_critic.parameters(), lr=1.5e-4
+        policy.reward_critic.parameters(), lr=1e-3
     )
-    cost_critic_optimizer = torch.optim.Adam(policy.cost_critic.parameters(), lr=1.5e-4)
+    cost_critic_optimizer = torch.optim.Adam(policy.cost_critic.parameters(), lr=1e-3)
 
     # create the vectorized on-policy buffer
     buffer = VectorizedOnPolicyBuffer(
@@ -253,8 +253,6 @@ def main(args, cfg_env=None):
         np.zeros(args.num_envs),
         np.zeros(args.num_envs),
     )
-
-    envtest = make_human_render_mujoco_env(env_id=args.task)
 
     # training loop
     for epoch in range(epochs):
