@@ -240,6 +240,12 @@ def single_agent_args():
             "default": 0.035,
             "help": "learning rate of lagrangian multiplier",
         },
+        {
+            "name": "--critic-lr",
+            "type": float,
+            "default": 1e-3,
+            "help": "learning rate of critic optimizer",
+        },
     ]
     # Create argument parser
     parser = argparse.ArgumentParser(description="RL Policy")

@@ -209,10 +209,13 @@ def main(args, cfg_env=None):
         act_dim=act_dim,
         hidden_sizes=config["hidden_sizes"],
     ).to(device)
+    print("lr: ", args.critic_lr)
     reward_critic_optimizer = torch.optim.Adam(
-        policy.reward_critic.parameters(), lr=1e-3
+        policy.reward_critic.parameters(), lr=args.critic_lr
     )
-    cost_critic_optimizer = torch.optim.Adam(policy.cost_critic.parameters(), lr=1e-3)
+    cost_critic_optimizer = torch.optim.Adam(
+        policy.cost_critic.parameters(), lr=args.critic_lr
+    )
 
     # create the vectorized on-policy buffer
     buffer = VectorizedOnPolicyBuffer(
@@ -325,9 +328,9 @@ def main(args, cfg_env=None):
                         len_deque.append(ep_len[idx])
                         logger.store(
                             **{
-                                "Metrics/EpRet": rew_deque[-1],
-                                "Metrics/EpCost": cost_deque[-1],
-                                "Metrics/EpLen": ep_len[idx],
+                                "Metrics/EpRet": np.mean(rew_deque),
+                                "Metrics/EpCost": np.mean(cost_deque),
+                                "Metrics/EpLen": np.mean(ep_len),
                             }
                         )
                         ep_ret[idx] = 0.0
@@ -389,7 +392,7 @@ def main(args, cfg_env=None):
         theta_old = get_flat_params_from(policy.actor)
         policy.actor.zero_grad()
 
-        # comnpute advantage
+        # compute advantage
         advantage = data["adv_r"] - lagrange.lagrangian_multiplier * data["adv_c"]
         advantage /= lagrange.lagrangian_multiplier + 1
 
@@ -514,7 +517,7 @@ def main(args, cfg_env=None):
             logger.log_tabular("Misc/H_inv_g")
 
             logger.dump_tabular()
-            if (epoch + 1) % 100 == 0 or epoch == 0:
+            if (epoch + 1) % 50 == 0 or epoch == 0:
                 logger.torch_save(itr=epoch)
                 if args.task not in isaac_gym_map.keys():
                     logger.save_state(
