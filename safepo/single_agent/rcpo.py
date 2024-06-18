@@ -209,7 +209,6 @@ def main(args, cfg_env=None):
         act_dim=act_dim,
         hidden_sizes=config["hidden_sizes"],
     ).to(device)
-    print("lr: ", args.critic_lr)
     reward_critic_optimizer = torch.optim.Adam(
         policy.reward_critic.parameters(), lr=args.critic_lr
     )
