@@ -256,7 +256,8 @@ def single_agent_args():
 
     grid_search_parameters = {
         "--critic-lr": [1e-5, 1e-4, 1e-3, 5e-3],
-        "--lagrangian-multiplier-lr": [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2],
+        "--lagrangian-multiplier-lr": [1e-7, 1e-4, 1e-2],
+        "--lagrangian-multiplier-init": [0.1, 0.5, 1.0],
         "--cost-limit": [1.0, 5.0, 10.0, 15.0, 20.0, 25.0],
     }
 
@@ -271,18 +272,20 @@ def single_agent_args():
 
     args = parser.parse_args()
     if args.grid_search_id != 0:
-        i = args.grid_search_id // (6 * 6)
-        reste = args.grid_search_id % (6 * 6)
-        j = reste // 6
-        k = reste % 6
+        i = args.grid_search_id // (3 * 3 * 6)
+        reste = args.grid_search_id % (3 * 3 * 6)
+        j = reste // (3 * 6)
+        reste = reste % (3 * 6)
+        k = reste // 6
+        l = reste % 6
         args.critic_lr = grid_search_parameters["--critic-lr"][i]
         args.lagrangian_multiplier_lr = grid_search_parameters[
             "--lagrangian-multiplier-lr"
         ][j]
-        args.cost_limit = grid_search_parameters["--cost-limit"][k]
-        print("1 ", args.critic_lr)
-        print("2 ", args.lagrangian_multiplier_lr)
-        print("3 ", args.cost_limit)
+        args.lagrangian_multiplier_init = grid_search_parameters[
+            "--lagrangian-multiplier-init"
+        ][k]
+        args.cost_limit = grid_search_parameters["--cost-limit"][l]
 
     cfg_env = {}
     base_path = os.path.dirname(os.path.abspath(__file__)).replace(
