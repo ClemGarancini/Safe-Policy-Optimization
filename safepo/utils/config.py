@@ -227,7 +227,12 @@ def single_agent_args():
             "default": False,
             "help": "Wheather to randomize the environments' initial states",
         },
-        {"name": "--cost-limit", "type": float, "default": 25.0, "help": "cost_lim"},
+        {
+            "name": "--cost-limit", 
+            "type": float, 
+            "default": 25.0, 
+            "help": "The constraint on the cost that the policy must satisfy",
+        },
         {
             "name": "--lagrangian-multiplier-init",
             "type": float,
@@ -249,16 +254,14 @@ def single_agent_args():
         {
             "name": "--grid-search-id",
             "type": int,
-            "default": 0,
+            "default": -1,
             "help": "id of the grid search value",
         },
     ]
 
     grid_search_parameters = {
-        "--critic-lr": [1e-5, 1e-4, 1e-3, 5e-3],
-        "--lagrangian-multiplier-lr": [1e-7, 1e-4, 1e-2],
-        "--lagrangian-multiplier-init": [0.1, 0.5, 1.0],
-        "--cost-limit": [1.0, 5.0, 10.0, 15.0, 20.0, 25.0],
+        "--lagrangian-multiplier-init": [5.0, 15.0, 25.0, 35.0],
+        "--cost-limit": [1.0, 5.0, 15.0, 25.0],
     }
 
     # Create argument parser
@@ -271,21 +274,11 @@ def single_agent_args():
     # Parse arguments
 
     args = parser.parse_args()
-    if args.grid_search_id != 0:
-        i = args.grid_search_id // (3 * 3 * 6)
-        reste = args.grid_search_id % (3 * 3 * 6)
-        j = reste // (3 * 6)
-        reste = reste % (3 * 6)
-        k = reste // 6
-        l = reste % 6
-        args.critic_lr = grid_search_parameters["--critic-lr"][i]
-        args.lagrangian_multiplier_lr = grid_search_parameters[
-            "--lagrangian-multiplier-lr"
-        ][j]
-        args.lagrangian_multiplier_init = grid_search_parameters[
-            "--lagrangian-multiplier-init"
-        ][k]
-        args.cost_limit = grid_search_parameters["--cost-limit"][l]
+    if args.grid_search_id != -1:
+        i = args.grid_search_id // 4
+        j = args.grid_search_id % 4
+        args.lagrangian_multiplier_init = grid_search_parameters["--lagrangian-multiplier-init"][i]
+        args.cost_limit = grid_search_parameters["--cost-limit"][j]
 
     cfg_env = {}
     base_path = os.path.dirname(os.path.abspath(__file__)).replace(
